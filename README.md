@@ -1,6 +1,6 @@
 🚀 Smart Task Manager - Django
 
-Ce projet est une application web de gestion de tâches intelligente développée dans le cadre du **volet Créativité (LMA 2)**. Elle permet d'organiser ses activités quotidiennes avec un système de priorité dynamique.
+Ce projet est une application web de gestion de tâches intelligente développée dans le cadre du volet Créativité . Elle permet d'organiser ses activités quotidiennes avec un système de priorité dynamique.
 
 ✨ Fonctionnalités clés
 * Algorithme de priorité :Les tâches urgentes remontent automatiquement en haut de liste avec une alerte visuelle.
