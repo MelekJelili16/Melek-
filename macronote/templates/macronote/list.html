@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma Liste de Tâches Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .card { border-radius: 20px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .list-group-item { transition: 0.3s; border: none; margin-bottom: 12px; border-radius: 15px !important; border-left: 6px solid #e0e0e0; }
+        .task-urgent { border-left-color: #dc3545 !important; background-color: #fff8f8; }
+        .task-retard { background-color: #fff3cd !important; border-left-color: #ffc107 !important; }
+        .task-proche { border-left-color: #0dcaf0 !important; }
+        .task-completed { opacity: 0.6; filter: grayscale(1); border-left-color: #bdc3c7 !important; }
+        .badge-filter { cursor: pointer; text-decoration: none; transition: 0.2s; border: 1px solid transparent; }
+        .badge-filter:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .form-control, .form-select { border-radius: 10px; border: 1px solid #dee2e6; padding: 10px; }
+        .btn-add { border-radius: 12px; padding: 12px; font-weight: bold; letter-spacing: 0.5px; }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10 col-lg-8">
+                
+                <h1 class="text-center mb-4 fw-bold text-dark">📝 Ma Liste de Tâches</h1>
+
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body p-4">
+                        <form method="POST" class="row g-3">
+                            {% csrf_token %}
+                            <div class="col-12">{{ form.title }}</div>
+                            <div class="col-md-4 col-6"><label class="small fw-bold text-muted">📁 Catégorie</label>{{ form.category }}</div>
+                            <div class="col-md-4 col-6"><label class="small fw-bold text-muted">⚡ Priorité</label>{{ form.priority }}</div>
+                            <div class="col-md-4 col-12"><label class="small fw-bold text-muted">📅 Échéance</label>{{ form.due_date }}</div>
+                            <div class="col-12 mt-4">
+                                <button type="submit" class="btn btn-primary btn-add w-100 shadow-sm">AJOUTER À MA LISTE</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="text-center mb-4">
+                    <div class="card p-2 mb-3 shadow-sm">
+                        <form method="GET" class="d-flex gap-2">
+                            <input type="text" name="search-area" value="{{ search_input }}" class="form-control border-0 shadow-none" placeholder="Rechercher une tâche...">
+                            <button type="submit" class="btn btn-light">🔍</button>
+                        </form>
+                    </div>
+
+                    <div class="d-flex justify-content-center flex-wrap gap-2 mb-3">
+                        <a href="?" class="badge bg-dark p-2 badge-filter">Tout voir</a>
+                        <a href="?category-filter=TRAVAIL" class="badge bg-primary p-2 badge-filter">Travail ({{ stats.Travail }})</a>
+                        <a href="?category-filter=LOISIRS" class="badge bg-success p-2 badge-filter">Loisirs ({{ stats.Loisirs }})</a>
+                        <a href="?category-filter=COURSES" class="badge bg-warning text-dark p-2 badge-filter">Courses ({{ stats.Courses }})</a>
+                    </div>
+                </div>
+
+                <div class="mb-5 px-2">
+                    <div class="d-flex justify-content-between align-items-end mb-2">
+                        <span class="text-muted fw-bold small">PROGRESSION : {{ progression }}%</span>
+                        <a href="{% url 'delete_all' %}" class="text-danger small text-decoration-none fw-bold" onclick="return confirm('Vider toute la liste ?')">🗑️ TOUT EFFACER</a>
+                    </div>
+                    <div class="progress" style="height: 12px; border-radius: 20px;">
+                        <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width: {{ progression }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="list-group">
+                    {% for t in taches %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center shadow-sm 
+                            {% if t.completed %}task-completed
+                            {% elif t.due_date and t.due_date < maintenant %}task-retard
+                            {% elif t.due_date and t.due_date < limite_proche %}task-proche
+                            {% elif t.priority == '2' %}task-urgent{% endif %}">
+                            
+                            <div class="d-flex flex-column">
+                                <div class="d-flex align-items-center flex-wrap gap-2">
+                                    <span class="fs-5 fw-bold" style="{% if t.completed %}text-decoration: line-through; color: #95a5a6;{% endif %}">
+                                        {{ t.title }}
+                                    </span>
+                                    <span class="badge rounded-pill 
+                                        {% if t.category == 'TRAVAIL' %}bg-primary
+                                        {% elif t.category == 'LOISIRS' %}bg-success
+                                        {% elif t.category == 'COURSES' %}bg-warning text-dark
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ t.get_category_display }}
+                                    </span>
+                                    {% if t.priority == '2' and not t.completed %}
+                                        <span class="badge bg-danger">URGENT 🔥</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mt-1">
+                                    {% if t.due_date %}
+                                        <small class="{% if t.due_date < maintenant and not t.completed %}text-danger fw-bold{% else %}text-muted{% endif %}" style="font-size: 0.8rem;">
+                                            📅 Échéance : {{ t.due_date|date:"d/m à H:i" }}
+                                            {% if t.due_date < maintenant and not t.completed %} (RETARD !){% endif %}
+                                        </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="btn-group gap-2">
+                                <a href="{% url 'toggle_task' t.pk %}" class="btn btn-outline-secondary btn-sm border-0">
+                                    {% if t.completed %} ↩️ {% else %} ✅ {% endif %}
+                                </a>
+                                <a href="{% url 'delete_task' t.pk %}" class="btn btn-outline-danger btn-sm border-0" onclick="return confirm('Supprimer ?')"> 🗑️ </a>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="text-center py-5 bg-white rounded-4 shadow-sm">
+                            <h3 class="text-muted">✨ Liste vide !</h3>
+                            <p class="text-muted mb-0">Ajoutez une tâche pour commencer votre journée.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+</body>
+</html>
